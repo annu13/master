@@ -250,7 +250,6 @@ PMIX_EXPORT pmix_status_t PMIx_Init(pmix_proc_t *proc,
     struct sockaddr_un address;
     pmix_nspace_t *nsptr;
     pmix_cb_t cb;
-    int errhandler_ref;
     if (NULL == proc) {
         return PMIX_ERR_BAD_PARAM;
     }

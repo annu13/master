@@ -204,13 +204,6 @@ pmix_status_t pmix_bfrop_copy_payload(pmix_buffer_t *dest, pmix_buffer_t *src)
 
     return PMIX_SUCCESS;
 }
-<<<<<<< HEAD
-/* compare function for pmix_value_t*/
-bool pmix_value_cmp(pmix_value_t *p, pmix_value_t *p1)
-{
-    bool rc = false;
-    switch (p->type) {
-=======
 /* compare function for pmix_value_t */
 bool pmix_value_cmp(pmix_value_t *p, pmix_value_t *p1)
 {
@@ -224,7 +217,6 @@ bool pmix_value_cmp(pmix_value_t *p, pmix_value_t *p1)
         case PMIX_UNDEF:
             rc = true;
             break;
->>>>>>> upstream/master
         case PMIX_BOOL:
             rc = (p->data.flag == p1->data.flag);
             break;
@@ -267,26 +259,19 @@ bool pmix_value_cmp(pmix_value_t *p, pmix_value_t *p1)
         case PMIX_STRING:
             rc = strcmp(p->data.string, p1->data.string);
             break;
-<<<<<<< HEAD
-=======
         case PMIX_STATUS:
             rc = (p->data.status == p1->data.status);
             break;
->>>>>>> upstream/master
         default:
             pmix_output(0, "COMPARE-PMIX-VALUE: UNSUPPORTED TYPE %d", (int)p->type);
     }
     return rc;
 }
-<<<<<<< HEAD
-/* COPY FUNCTIONS FOR GENERIC PMIX TYPES */
-pmix_status_t pmix_value_xfer(pmix_value_t *p, pmix_value_t *src)
-=======
+
 /* COPY FUNCTIONS FOR GENERIC PMIX TYPES - we
  * are not allocating memory and so we cannot
  * use the regular copy functions */
 PMIX_EXPORT pmix_status_t pmix_value_xfer(pmix_value_t *p, pmix_value_t *src)
->>>>>>> upstream/master
 {
     size_t n, m;
     pmix_status_t rc;

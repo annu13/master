@@ -198,7 +198,6 @@ static pmix_status_t initialize_server_base(pmix_server_module_t *module)
     pmix_list_append(&pmix_server_globals.listeners, &listener->super);
     free(pmix_pid);
 
-
     pmix_output_verbose(2, pmix_globals.debug_output,
                         "pmix:server constructed uri %s", listener->uri);
 
@@ -388,21 +387,6 @@ PMIX_EXPORT pmix_status_t PMIx_server_init(pmix_server_module_t *module,
          * the TOOL connection URI to a child process */
         pmix_server_globals.tool_connections_allowed = true;
     }
-
-    /* check the info keys for a directive about the uid/gid
-     * to be set for the rendezvous file */
-    if (NULL != info) {
-        for (n=0; n < ninfo; n++) {
-            if (0 == strcmp(info[n].key, PMIX_USERID)) {
-                /* the userid is in the uint32_t storage */
-                chown(myaddress.sun_path, info[n].value.data.uint32, -1);
-            } else if (0 == strcmp(info[n].key, PMIX_GRPID)) {
-               /* the grpid is in the uint32_t storage */
-                chown(myaddress.sun_path, -1, info[n].value.data.uint32);
-            }
-        }
-    }
-
     /* setup the wildcard recv for inbound messages from clients */
     req = PMIX_NEW(pmix_usock_posted_recv_t);
     req->tag = UINT32_MAX;
