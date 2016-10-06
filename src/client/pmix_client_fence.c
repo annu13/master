@@ -1,12 +1,13 @@
 /* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil -*- */
 /*
- * Copyright (c) 2014-2015 Intel, Inc.  All rights reserved.
+ * Copyright (c) 2014-2016 Intel, Inc.  All rights reserved.
  * Copyright (c) 2014-2015 Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * Copyright (c) 2014      Artem Y. Polyakov <artpol84@gmail.com>.
  *                         All rights reserved.
- * Copyright (c) 2015      Mellanox Technologies, Inc.
+ * Copyright (c) 2016      Mellanox Technologies, Inc.
  *                         All rights reserved.
+ * Copyright (c) 2016      IBM Corporation.  All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -14,12 +15,13 @@
  * $HEADER$
  */
 
-#include <private/autogen/config.h>
-#include <pmix/rename.h>
-#include <private/types.h>
-#include <private/pmix_stdint.h>
+#include <src/include/pmix_config.h>
+
+#include <src/include/types.h>
+#include <src/include/pmix_stdint.h>
 
 #include <pmix.h>
+#include <pmix_rename.h>
 
 #include "src/include/pmix_globals.h"
 
@@ -50,26 +52,24 @@
 #include "src/util/error.h"
 #include "src/util/hash.h"
 #include "src/util/output.h"
-#include "src/util/progress_threads.h"
 #include "src/usock/usock.h"
-#include "src/sec/pmix_sec.h"
 
 #include "pmix_client_ops.h"
 
-static int unpack_return(pmix_buffer_t *data);
-static int pack_fence(pmix_buffer_t *msg, pmix_cmd_t cmd,
-                      const pmix_proc_t *procs, size_t nprocs,
-                      const pmix_info_t *info, size_t ninfo);
+static pmix_status_t unpack_return(pmix_buffer_t *data);
+static pmix_status_t pack_fence(pmix_buffer_t *msg, pmix_cmd_t cmd,
+                                const pmix_proc_t *procs, size_t nprocs,
+                                const pmix_info_t *info, size_t ninfo);
 static void wait_cbfunc(struct pmix_peer_t *pr,
                         pmix_usock_hdr_t *hdr,
                         pmix_buffer_t *buf, void *cbdata);
-static void op_cbfunc(int status, void *cbdata);
+static void op_cbfunc(pmix_status_t status, void *cbdata);
 
-int PMIx_Fence(const pmix_proc_t procs[], size_t nprocs,
-               const pmix_info_t info[], size_t ninfo)
+PMIX_EXPORT pmix_status_t PMIx_Fence(const pmix_proc_t procs[], size_t nprocs,
+                           const pmix_info_t info[], size_t ninfo)
 {
     pmix_cb_t *cb;
-    int rc;
+    pmix_status_t rc;
 
     pmix_output_verbose(2, pmix_globals.debug_output,
                         "pmix: executing fence");
@@ -107,13 +107,13 @@ int PMIx_Fence(const pmix_proc_t procs[], size_t nprocs,
     return rc;
 }
 
-int PMIx_Fence_nb(const pmix_proc_t procs[], size_t nprocs,
-                  const pmix_info_t info[], size_t ninfo,
-                  pmix_op_cbfunc_t cbfunc, void *cbdata)
+PMIX_EXPORT pmix_status_t PMIx_Fence_nb(const pmix_proc_t procs[], size_t nprocs,
+                              const pmix_info_t info[], size_t ninfo,
+                              pmix_op_cbfunc_t cbfunc, void *cbdata)
 {
     pmix_buffer_t *msg;
     pmix_cmd_t cmd = PMIX_FENCENB_CMD;
-    int rc;
+    pmix_status_t rc;
     pmix_cb_t *cb;
     pmix_proc_t rg, *rgs;
     size_t nrg;
@@ -168,7 +168,7 @@ int PMIx_Fence_nb(const pmix_proc_t procs[], size_t nprocs,
 static pmix_status_t unpack_return(pmix_buffer_t *data)
 {
     pmix_status_t rc;
-    int ret;
+    pmix_status_t ret;
     int32_t cnt;
 
     pmix_output_verbose(2, pmix_globals.debug_output,
@@ -176,7 +176,7 @@ static pmix_status_t unpack_return(pmix_buffer_t *data)
 
     /* unpack the status code */
     cnt = 1;
-    if (PMIX_SUCCESS != (rc = pmix_bfrop.unpack(data, &ret, &cnt, PMIX_INT))) {
+    if (PMIX_SUCCESS != (rc = pmix_bfrop.unpack(data, &ret, &cnt, PMIX_STATUS))) {
         PMIX_ERROR_LOG(rc);
         return rc;
     }
@@ -245,7 +245,7 @@ static void wait_cbfunc(struct pmix_peer_t *pr, pmix_usock_hdr_t *hdr,
     PMIX_RELEASE(cb);
 }
 
-static void op_cbfunc(int status, void *cbdata)
+static void op_cbfunc(pmix_status_t status, void *cbdata)
 {
     pmix_cb_t *cb = (pmix_cb_t*)cbdata;
 

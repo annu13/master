@@ -13,7 +13,7 @@
  *                         All rights reserved.
  * Copyright (c) 2009-2012 Cisco Systems, Inc.  All rights reserved.
  * Copyright (c) 2011      Oak Ridge National Labs.  All rights reserved.
- * Copyright (c) 2013-2015 Intel, Inc.  All rights reserved.
+ * Copyright (c) 2013-2016 Intel, Inc.  All rights reserved.
  * Copyright (c) 2015      Mellanox Technologies, Inc.  All rights reserved.
  * $COPYRIGHT$
  *
@@ -22,7 +22,7 @@
  * $HEADER$
  *
  */
-#include <private/autogen/config.h>
+#include <src/include/pmix_config.h>
 #include <pmix.h>
 
 #include <stdio.h>
@@ -40,10 +40,13 @@
 #include "test_resolve_peers.h"
 #include "test_error.h"
 
-
-static void errhandler(pmix_status_t status,
-                pmix_proc_t procs[], size_t nprocs,
-                pmix_info_t info[], size_t ninfo)
+static void errhandler(size_t evhdlr_registration_id,
+                       pmix_status_t status,
+                       const pmix_proc_t *source,
+                       pmix_info_t info[], size_t ninfo,
+                       pmix_info_t results[], size_t nresults,
+                       pmix_event_notification_cbfunc_fn_t cbfunc,
+                       void *cbdata)
 {
     TEST_ERROR(("PMIX client: Error handler with status = %d", status))
 }
@@ -55,11 +58,11 @@ static void op_callbk(pmix_status_t status,
 }
 
 static void errhandler_reg_callbk (pmix_status_t status,
-                            int errhandler_ref,
-                            void *cbdata)
+                                   size_t errhandler_ref,
+                                   void *cbdata)
 {
-    TEST_VERBOSE(("PMIX client ERRHANDLER REGISTRATION CALLBACK CALLED WITH STATUS %d, ref=%d",
-                  status, errhandler_ref));
+    TEST_VERBOSE(("PMIX client ERRHANDLER REGISTRATION CALLBACK CALLED WITH STATUS %d, ref=%lu",
+                  status, (unsigned long)errhandler_ref));
 }
 
 int main(int argc, char **argv)
@@ -69,7 +72,7 @@ int main(int argc, char **argv)
     pmix_value_t *val = &value;
     test_params params;
     INIT_TEST_PARAMS(params);
-    pmix_proc_t myproc;
+    pmix_proc_t myproc, proc;
 
     parse_cmd(argc, argv, &params);
 
@@ -82,12 +85,12 @@ int main(int argc, char **argv)
     }
 
     /* init us */
-    if (PMIX_SUCCESS != (rc = PMIx_Init(&myproc))) {
+    if (PMIX_SUCCESS != (rc = PMIx_Init(&myproc, NULL, 0))) {
         TEST_ERROR(("Client ns %s rank %d: PMIx_Init failed: %d", params.nspace, params.rank, rc));
         FREE_TEST_PARAMS(params);
         exit(0);
     }
-    PMIx_Register_errhandler(NULL, 0, errhandler, errhandler_reg_callbk, NULL);
+    PMIx_Register_event_handler(NULL, 0, NULL, 0, errhandler, errhandler_reg_callbk, NULL);
     if (myproc.rank != params.rank) {
         TEST_ERROR(("Client ns %s Rank returned in PMIx_Init %d does not match to rank from command line %d.", myproc.nspace, myproc.rank, params.rank));
         FREE_TEST_PARAMS(params);
@@ -98,7 +101,9 @@ int main(int argc, char **argv)
     }
     TEST_VERBOSE((" Client ns %s rank %d: PMIx_Init success", myproc.nspace, myproc.rank));
 
-    if (PMIX_SUCCESS != (rc = PMIx_Get(&myproc,PMIX_UNIV_SIZE,NULL, 0,&val))) {
+    (void)strncpy(proc.nspace, myproc.nspace, PMIX_MAX_NSLEN);
+    proc.rank = PMIX_RANK_WILDCARD;
+    if (PMIX_SUCCESS != (rc = PMIx_Get(&proc, PMIX_UNIV_SIZE, NULL, 0, &val))) {
         TEST_ERROR(("rank %d: PMIx_Get universe size failed: %d", myproc.rank, rc));
         FREE_TEST_PARAMS(params);
         exit(0);
@@ -187,12 +192,19 @@ int main(int argc, char **argv)
             exit(0);
         }
     }
+    TEST_VERBOSE(("Client ns %s rank %d: PASSED", myproc.nspace, myproc.rank));
+    PMIx_Deregister_event_handler(1, op_callbk, NULL);
+
+    /* In case of direct modex we want to delay Finalize
+       until everybody has finished. Otherwise some processes
+       will fail to get data from others who already exited */
+    PMIx_Fence(NULL, 0, NULL, 0);
 
     TEST_VERBOSE(("Client ns %s rank %d: PASSED", myproc.nspace, myproc.rank));
     PMIx_Deregister_errhandler(1, op_callbk, NULL);
     /* finalize us */
     TEST_VERBOSE(("Client ns %s rank %d: Finalizing", myproc.nspace, myproc.rank));
-    if (PMIX_SUCCESS != (rc = PMIx_Finalize())) {
+    if (PMIX_SUCCESS != (rc = PMIx_Finalize(NULL, 0))) {
         TEST_ERROR(("Client ns %s rank %d:PMIx_Finalize failed: %d", myproc.nspace, myproc.rank, rc));
     } else {
         TEST_VERBOSE(("Client ns %s rank %d:PMIx_Finalize successfully completed", myproc.nspace, myproc.rank));

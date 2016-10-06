@@ -13,7 +13,7 @@
  *                         All rights reserved.
  * Copyright (c) 2009-2012 Cisco Systems, Inc.  All rights reserved.
  * Copyright (c) 2011      Oak Ridge National Labs.  All rights reserved.
- * Copyright (c) 2013-2015 Intel, Inc.  All rights reserved.
+ * Copyright (c) 2013-2016 Intel, Inc.  All rights reserved.
  * Copyright (c) 2015      Mellanox Technologies, Inc.  All rights reserved.
  * $COPYRIGHT$
  *
@@ -23,7 +23,6 @@
  *
  */
 
-#include <pmix/autogen/config.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -35,9 +34,13 @@
 static pmix_proc_t myproc;
 static bool completed;
 
-static void notification_fn(pmix_status_t status,
-                            pmix_proc_t procs[], size_t nprocs,
-                            pmix_info_t info[], size_t ninfo)
+static void notification_fn(size_t evhdlr_registration_id,
+                            pmix_status_t status,
+                            const pmix_proc_t *source,
+                            pmix_info_t info[], size_t ninfo,
+                            pmix_info_t results[], size_t nresults,
+                            pmix_event_notification_cbfunc_fn_t cbfunc,
+                            void *cbdata)
 {
     fprintf(stderr, "Client %s:%d NOTIFIED with status %d\n", myproc.nspace, myproc.rank, status);
     completed = true;
@@ -49,12 +52,12 @@ static void op_callbk(pmix_status_t status,
     fprintf(stderr, "client: OP CALLBACK CALLED WITH STATUS %d", status);
 }
 
-static void errhandler_reg_callbk (pmix_status_t status,
-                                   int errhandler_ref,
-                                   void *cbdata)
+static void errhandler_reg_callbk(pmix_status_t status,
+                                  size_t errhandler_ref,
+                                  void *cbdata)
 {
-    fprintf(stderr, "cleint: ERRHANDLER REGISTRATION CALLBACK CALLED WITH STATUS %d, ref=%d",
-                status, errhandler_ref);
+    fprintf(stderr, "client: ERRHANDLER REGISTRATION CALLBACK CALLED WITH STATUS %d, ref=%lu",
+                status, (unsigned long)errhandler_ref);
 }
 
 int main(int argc, char **argv)
@@ -66,7 +69,7 @@ int main(int argc, char **argv)
     uint32_t nprocs;
 
     /* init us */
-    if (PMIX_SUCCESS != (rc = PMIx_Init(&myproc))) {
+    if (PMIX_SUCCESS != (rc = PMIx_Init(&myproc, NULL, 0))) {
         fprintf(stderr, "Client ns %s rank %d: PMIx_Init failed: %d\n", myproc.nspace, myproc.rank, rc);
         exit(0);
     }
@@ -83,7 +86,8 @@ int main(int argc, char **argv)
     completed = false;
 
     /* register our errhandler */
-    PMIx_Register_errhandler(NULL, 0, notification_fn, errhandler_reg_callbk, NULL);
+    PMIx_Register_event_handler(NULL, 0, NULL, 0,
+                                notification_fn, errhandler_reg_callbk, NULL);
 
     /* call fence to sync */
     PMIX_PROC_CONSTRUCT(&proc);
@@ -111,9 +115,9 @@ int main(int argc, char **argv)
  done:
     /* finalize us */
     fprintf(stderr, "Client ns %s rank %d: Finalizing\n", myproc.nspace, myproc.rank);
-    PMIx_Deregister_errhandler(0, op_callbk, NULL);
+    PMIx_Deregister_event_handler(1, op_callbk, NULL);
 
-    if (PMIX_SUCCESS != (rc = PMIx_Finalize())) {
+    if (PMIX_SUCCESS != (rc = PMIx_Finalize(NULL, 0))) {
         fprintf(stderr, "Client ns %s rank %d:PMIx_Finalize failed: %d\n", myproc.nspace, myproc.rank, rc);
     } else {
         fprintf(stderr, "Client ns %s rank %d:PMIx_Finalize successfully completed\n", myproc.nspace, myproc.rank);

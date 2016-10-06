@@ -3,7 +3,7 @@
 # Copyright (c) 2011      NVIDIA Corporation.  All rights reserved.
 # Copyright (c) 2013      Mellanox Technologies, Inc.
 #                         All rights reserved.
-# Copyright (c) 2014-2015 Intel, Inc. All rights reserved.
+# Copyright (c) 2014-2016 Intel, Inc. All rights reserved.
 
 # This is the VERSION file for PMIx, describing the precise
 # version of PMIx in this distribution.  The various components of
@@ -13,8 +13,8 @@
 # major, minor, and release are generally combined in the form
 # <major>.<minor>.<release>.
 
-major=1
-minor=1
+major=3
+minor=0
 release=0
 
 # greek is used for alpha or beta release tags.  If it is non-empty,
@@ -30,7 +30,7 @@ greek=a1
 # command, or with the date (if "git describe" fails) in the form of
 # "date<date>".
 
-repo_rev=
+repo_rev=git997c34f
 
 # If tarball_version is not empty, it is used as the version string in
 # the tarball filename, regardless of all other versions listed in
@@ -44,11 +44,24 @@ tarball_version=
 
 # The date when this release was created
 
-date="Jun 12, 2015"
+date="Nov 15, 2015"
 
 # The shared library version of each of PMIx's public libraries.
 # These versions are maintained in accordance with the "Library
-# Interface Versions" chapter from the GNU Libtool documentation.
+# Interface Versions" chapter from the GNU Libtool documentation:
+#
+# - If the library source code has changed at all since the last
+#   update, then increment revision (`c:r:a' becomes `c:r+1:a').
+#
+# - If any interfaces have been added, removed, or changed since
+#   the last update, increment current, and set revision to 0.
+#
+# - If any interfaces have been added since the last public release,
+#   then increment age.
+#
+# - If any interfaces have been removed since the last public release,
+#   then set age to 0.
+#
 # All changes in these version numbers are dictated by the PMIx
 # release managers (not individual developers).  Notes:
 

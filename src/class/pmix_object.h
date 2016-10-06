@@ -118,20 +118,19 @@
 #ifndef PMIX_OBJECT_H
 #define PMIX_OBJECT_H
 
-#include <private/autogen/config.h>
+#include <src/include/pmix_config.h>
 
 #include <assert.h>
 #ifdef HAVE_STDLIB_H
 #include <stdlib.h>
 #endif  /* HAVE_STDLIB_H */
 
-#include "include/pmix/rename.h"
 
 BEGIN_C_DECLS
 
 #if PMIX_ENABLE_DEBUG
 /* Any kind of unique ID should do the job */
-#define PMIX_PMIX_MAGIC_ID ((0xdeafbeedULL << 32) + 0xdeafbeedULL)
+#define PMIX_OBJ_MAGIC_ID ((0xdeafbeedULL << 32) + 0xdeafbeedULL)
 #endif
 
 /* typedefs ***********************************************************/
@@ -170,9 +169,9 @@ struct pmix_class_t {
  * @param NAME   Name of the class to initialize
  */
 #if PMIX_ENABLE_DEBUG
-#define PMIX_PMIX_STATIC_INIT(BASE_CLASS) { PMIX_PMIX_MAGIC_ID, PMIX_CLASS(BASE_CLASS), 1, __FILE__, __LINE__ }
+#define PMIX_OBJ_STATIC_INIT(BASE_CLASS) { PMIX_OBJ_MAGIC_ID, PMIX_CLASS(BASE_CLASS), 1, __FILE__, __LINE__ }
 #else
-#define PMIX_PMIX_STATIC_INIT(BASE_CLASS) { PMIX_CLASS(BASE_CLASS), 1 }
+#define PMIX_OBJ_STATIC_INIT(BASE_CLASS) { PMIX_CLASS(BASE_CLASS), 1 }
 #endif
 
 /**
@@ -250,7 +249,7 @@ static inline pmix_object_t *pmix_obj_new(pmix_class_t * cls);
 static inline pmix_object_t *pmix_obj_new_debug(pmix_class_t* type, const char* file, int line)
 {
     pmix_object_t* object = pmix_obj_new(type);
-    object->obj_magic_id = PMIX_PMIX_MAGIC_ID;
+    object->obj_magic_id = PMIX_OBJ_MAGIC_ID;
     object->cls_init_file_name = file;
     object->cls_init_lineno = line;
     return object;
@@ -271,7 +270,7 @@ static inline pmix_object_t *pmix_obj_new_debug(pmix_class_t* type, const char* 
 #define PMIX_RETAIN(object)                                              \
     do {                                                                \
         assert(NULL != ((pmix_object_t *) (object))->obj_class);        \
-        assert(PMIX_PMIX_MAGIC_ID == ((pmix_object_t *) (object))->obj_magic_id); \
+        assert(PMIX_OBJ_MAGIC_ID == ((pmix_object_t *) (object))->obj_magic_id); \
         pmix_obj_update((pmix_object_t *) (object), 1);                 \
         assert(((pmix_object_t *) (object))->obj_reference_count >= 0); \
     } while (0)
@@ -288,11 +287,11 @@ static inline pmix_object_t *pmix_obj_new_debug(pmix_class_t* type, const char* 
     do {                                                        \
         ((pmix_object_t*)(OBJECT))->cls_init_file_name = FILE;  \
         ((pmix_object_t*)(OBJECT))->cls_init_lineno = LINENO;   \
-    } while(0)
+    } while (0)
 #define PMIX_SET_MAGIC_ID( OBJECT, VALUE )                       \
     do {                                                        \
         ((pmix_object_t*)(OBJECT))->obj_magic_id = (VALUE);     \
-    } while(0)
+    } while (0)
 #else
 #define PMIX_REMEMBER_FILE_AND_LINENO( OBJECT, FILE, LINENO )
 #define PMIX_SET_MAGIC_ID( OBJECT, VALUE )
@@ -312,7 +311,7 @@ static inline pmix_object_t *pmix_obj_new_debug(pmix_class_t* type, const char* 
 #define PMIX_RELEASE(object)                                             \
     do {                                                                \
         assert(NULL != ((pmix_object_t *) (object))->obj_class);        \
-        assert(PMIX_PMIX_MAGIC_ID == ((pmix_object_t *) (object))->obj_magic_id); \
+        assert(PMIX_OBJ_MAGIC_ID == ((pmix_object_t *) (object))->obj_magic_id); \
         if (0 == pmix_obj_update((pmix_object_t *) (object), -1)) {     \
             PMIX_SET_MAGIC_ID((object), 0);                              \
             pmix_obj_run_destructors((pmix_object_t *) (object));       \
@@ -347,7 +346,7 @@ do {                                                            \
 
 #define PMIX_CONSTRUCT_INTERNAL(object, type)                        \
 do {                                                                \
-    PMIX_SET_MAGIC_ID((object), PMIX_PMIX_MAGIC_ID);              \
+    PMIX_SET_MAGIC_ID((object), PMIX_OBJ_MAGIC_ID);              \
     if (0 == (type)->cls_initialized) {                             \
         pmix_class_initialize((type));                              \
     }                                                               \
@@ -366,7 +365,7 @@ do {                                                                \
 #if PMIX_ENABLE_DEBUG
 #define PMIX_DESTRUCT(object)                                    \
 do {                                                            \
-    assert(PMIX_PMIX_MAGIC_ID == ((pmix_object_t *) (object))->obj_magic_id); \
+    assert(PMIX_OBJ_MAGIC_ID == ((pmix_object_t *) (object))->obj_magic_id); \
     PMIX_SET_MAGIC_ID((object), 0);                              \
     pmix_obj_run_destructors((pmix_object_t *) (object));       \
     PMIX_REMEMBER_FILE_AND_LINENO( object, __FILE__, __LINE__ ); \
@@ -379,7 +378,7 @@ do {                                                            \
 } while (0)
 #endif
 
-PMIX_DECLSPEC PMIX_CLASS_DECLARATION(pmix_object_t);
+PMIX_CLASS_DECLARATION(pmix_object_t);
 
 /* declarations *******************************************************/
 
@@ -391,7 +390,7 @@ PMIX_DECLSPEC PMIX_CLASS_DECLARATION(pmix_object_t);
  *
  * @param class    Pointer to class descriptor
  */
-PMIX_DECLSPEC void pmix_class_initialize(pmix_class_t *);
+void pmix_class_initialize(pmix_class_t *);
 
 /**
  * Shut down the class system and release all memory
@@ -402,7 +401,7 @@ PMIX_DECLSPEC void pmix_class_initialize(pmix_class_t *);
  * tools like valgrind and purify don't report still-reachable memory
  * upon process termination.
  */
-PMIX_DECLSPEC int pmix_class_finalize(void);
+int pmix_class_finalize(void);
 
 /**
  * Run the hierarchy of class constructors for this object, in a

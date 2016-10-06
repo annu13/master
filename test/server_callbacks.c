@@ -1,9 +1,10 @@
 /*
- * Copyright (c) 2015      Intel, Inc.  All rights reserved.
+ * Copyright (c) 2015-2016 Intel, Inc.  All rights reserved.
  * Copyright (c) 2015      Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * Copyright (c) 2015      Mellanox Technologies, Inc.
  *                         All rights reserved.
+ * Copyright (c) 2016      IBM Corporation.  All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -16,20 +17,19 @@
 #include "src/util/argv.h"
 
 pmix_server_module_t mymodule = {
-    connected,
-    finalized,
-    abort_fn,
-    fencenb_fn,
-    dmodex_fn,
-    publish_fn,
-    lookup_fn,
-    unpublish_fn,
-    spawn_fn,
-    connect_fn,
-    disconnect_fn,
-    regevents_fn,
-    deregevents_fn,
-    NULL
+    .client_connected = connected,
+    .client_finalized = finalized,
+    .abort = abort_fn,
+    .fence_nb = fencenb_fn,
+    .direct_modex = dmodex_fn,
+    .publish = publish_fn,
+    .lookup = lookup_fn,
+    .unpublish = unpublish_fn,
+    .spawn = spawn_fn,
+    .connect = connect_fn,
+    .disconnect = disconnect_fn,
+    .register_events = regevents_fn,
+    .deregister_events = deregevents_fn
 };
 
 typedef struct {
@@ -79,12 +79,16 @@ pmix_list_t *pmix_test_published_list = NULL;
 
 static int finalized_count = 0;
 
-int connected(const pmix_proc_t *proc, void *server_object)
+pmix_status_t connected(const pmix_proc_t *proc, void *server_object,
+                        pmix_op_cbfunc_t cbfunc, void *cbdata)
 {
+    if (NULL != cbfunc) {
+        cbfunc(PMIX_SUCCESS, cbdata);
+    }
     return PMIX_SUCCESS;
 }
 
-int finalized(const pmix_proc_t *proc, void *server_object,
+pmix_status_t finalized(const pmix_proc_t *proc, void *server_object,
               pmix_op_cbfunc_t cbfunc, void *cbdata)
 {
     if( CLI_TERM <= cli_info[proc->rank].state ){
@@ -105,7 +109,7 @@ int finalized(const pmix_proc_t *proc, void *server_object,
     return PMIX_SUCCESS;
 }
 
-int abort_fn(const pmix_proc_t *proc, void *server_object,
+pmix_status_t abort_fn(const pmix_proc_t *proc, void *server_object,
              int status, const char msg[],
              pmix_proc_t procs[], size_t nprocs,
              pmix_op_cbfunc_t cbfunc, void *cbdata)
@@ -119,7 +123,7 @@ int abort_fn(const pmix_proc_t *proc, void *server_object,
     return PMIX_SUCCESS;
 }
 
-int fencenb_fn(const pmix_proc_t procs[], size_t nprocs,
+pmix_status_t fencenb_fn(const pmix_proc_t procs[], size_t nprocs,
                const pmix_info_t info[], size_t ninfo,
                char *data, size_t ndata,
                pmix_modex_cbfunc_t cbfunc, void *cbdata)
@@ -139,7 +143,7 @@ int fencenb_fn(const pmix_proc_t procs[], size_t nprocs,
     return PMIX_SUCCESS;
 }
 
-int dmodex_fn(const pmix_proc_t *proc,
+pmix_status_t dmodex_fn(const pmix_proc_t *proc,
               const pmix_info_t info[], size_t ninfo,
               pmix_modex_cbfunc_t cbfunc, void *cbdata)
 {
@@ -156,7 +160,7 @@ int dmodex_fn(const pmix_proc_t *proc,
     return PMIX_SUCCESS;
 }
 
-int publish_fn(const pmix_proc_t *proc,
+pmix_status_t publish_fn(const pmix_proc_t *proc,
                const pmix_info_t info[], size_t ninfo,
                pmix_op_cbfunc_t cbfunc, void *cbdata)
 {
@@ -189,7 +193,7 @@ int publish_fn(const pmix_proc_t *proc,
     return PMIX_SUCCESS;
 }
 
-int lookup_fn(const pmix_proc_t *proc, char **keys,
+pmix_status_t lookup_fn(const pmix_proc_t *proc, char **keys,
               const pmix_info_t info[], size_t ninfo,
               pmix_lookup_cbfunc_t cbfunc, void *cbdata)
 {
@@ -221,7 +225,7 @@ int lookup_fn(const pmix_proc_t *proc, char **keys,
     return PMIX_SUCCESS;
 }
 
-int unpublish_fn(const pmix_proc_t *proc, char **keys,
+pmix_status_t unpublish_fn(const pmix_proc_t *proc, char **keys,
                  const pmix_info_t info[], size_t ninfo,
                  pmix_op_cbfunc_t cbfunc, void *cbdata)
 {
@@ -268,7 +272,7 @@ static void release_cb(pmix_status_t status, void *cbdata)
     free(cb);
 }
 
-int spawn_fn(const pmix_proc_t *proc,
+pmix_status_t spawn_fn(const pmix_proc_t *proc,
              const pmix_info_t job_info[], size_t ninfo,
              const pmix_app_t apps[], size_t napps,
              pmix_spawn_cbfunc_t cbfunc, void *cbdata)
@@ -281,7 +285,7 @@ int spawn_fn(const pmix_proc_t *proc,
     return PMIX_SUCCESS;
 }
 
-int connect_fn(const pmix_proc_t procs[], size_t nprocs,
+pmix_status_t connect_fn(const pmix_proc_t procs[], size_t nprocs,
                const pmix_info_t info[], size_t ninfo,
                pmix_op_cbfunc_t cbfunc, void *cbdata)
 {
@@ -292,7 +296,7 @@ int connect_fn(const pmix_proc_t procs[], size_t nprocs,
    return PMIX_SUCCESS;
 }
 
-int disconnect_fn(const pmix_proc_t procs[], size_t nprocs,
+pmix_status_t disconnect_fn(const pmix_proc_t procs[], size_t nprocs,
                   const pmix_info_t info[], size_t ninfo,
                   pmix_op_cbfunc_t cbfunc, void *cbdata)
 {
@@ -302,8 +306,9 @@ int disconnect_fn(const pmix_proc_t procs[], size_t nprocs,
     return PMIX_SUCCESS;
 }
 
-int regevents_fn (const pmix_info_t info[], size_t ninfo,
-                  pmix_op_cbfunc_t cbfunc, void *cbdata)
+pmix_status_t regevents_fn (pmix_status_t *codes, size_t ncodes,
+                           const pmix_info_t info[], size_t ninfo,
+                           pmix_op_cbfunc_t cbfunc, void *cbdata)
 {
     TEST_VERBOSE ((" pmix host server regevents_fn called "));
     if (NULL != cbfunc) {
@@ -312,8 +317,8 @@ int regevents_fn (const pmix_info_t info[], size_t ninfo,
     return PMIX_SUCCESS;
 }
 
-int deregevents_fn (const pmix_info_t info[], size_t ninfo,
-                  pmix_op_cbfunc_t cbfunc, void *cbdata)
+pmix_status_t deregevents_fn (pmix_status_t *codes, size_t ncodes,
+                             pmix_op_cbfunc_t cbfunc, void *cbdata)
 {
     TEST_VERBOSE ((" pmix host server deregevents_fn called "));
     if (NULL != cbfunc) {

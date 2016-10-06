@@ -42,8 +42,8 @@
 #ifndef PMIX_OS_PATH_H
 #define PMIX_OS_PATH_H
 
-#include <private/autogen/config.h>
-#include <pmix/rename.h>
+#include <src/include/pmix_config.h>
+
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -65,7 +65,7 @@ BEGIN_C_DECLS
  * appropriate to the local operating system. The path_name string has been malloc'd
  * and therefore the user is responsible for free'ing the field.
 */
-PMIX_DECLSPEC char *pmix_os_path(bool relative, ...) __pmix_attribute_malloc__ __pmix_attribute_sentinel__ __pmix_attribute_warn_unused_result__;
+char *pmix_os_path(bool relative, ...) __pmix_attribute_malloc__ __pmix_attribute_sentinel__ __pmix_attribute_warn_unused_result__;
 
 /**
  * Convert the path to be OS friendly. On UNIX this function will

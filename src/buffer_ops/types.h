@@ -28,13 +28,13 @@
 #ifndef PMIX_BFROP_TYPES_H_
 #define PMIX_BFROP_TYPES_H_
 
-#include <private/autogen/config.h>
-#include <pmix/rename.h>
+#include <src/include/pmix_config.h>
+
 
 #include "src/class/pmix_object.h"
 #include "src/class/pmix_pointer_array.h"
 #include "src/class/pmix_list.h"
-#include <pmix/pmix_common.h>
+#include <pmix_common.h>
 
 BEGIN_C_DECLS
 
@@ -78,7 +78,7 @@ typedef struct {
         including overhead -- packed in the buffer) */
     size_t bytes_used;
 } pmix_buffer_t;
-PMIX_DECLSPEC PMIX_CLASS_DECLARATION (pmix_buffer_t);
+PMIX_CLASS_DECLARATION (pmix_buffer_t);
 
 /* these classes are required by the regex code shared
  * between the client and server implementations - it
@@ -88,7 +88,7 @@ typedef struct {
     int start;
     int cnt;
 } pmix_regex_range_t;
-PMIX_DECLSPEC PMIX_CLASS_DECLARATION(pmix_regex_range_t);
+PMIX_CLASS_DECLARATION(pmix_regex_range_t);
 
 typedef struct {
     /* list object */
@@ -98,7 +98,7 @@ typedef struct {
     int num_digits;
     pmix_list_t ranges;
 } pmix_regex_value_t;
-PMIX_DECLSPEC PMIX_CLASS_DECLARATION(pmix_regex_value_t);
+PMIX_CLASS_DECLARATION(pmix_regex_value_t);
 
 END_C_DECLS
 

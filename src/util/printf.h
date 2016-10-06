@@ -25,8 +25,8 @@
 #ifndef PMIX_PRINTF_H
 #define PMIX_PRINTF_H
 
-#include <private/autogen/config.h>
-#include <pmix/rename.h>
+#include <src/include/pmix_config.h>
+
 
 #include <stdarg.h>
 #include <stdlib.h>
@@ -53,7 +53,7 @@ BEGIN_C_DECLS
  *
  * THIS IS A PORTABILITY FEATURE: USE snprintf() in CODE.
  */
-PMIX_DECLSPEC int  pmix_snprintf(char *str, size_t size, const char *fmt, ...) __pmix_attribute_format__(__printf__, 3, 4);
+int  pmix_snprintf(char *str, size_t size, const char *fmt, ...) __pmix_attribute_format__(__printf__, 3, 4);
 
 
 /**
@@ -78,7 +78,7 @@ PMIX_DECLSPEC int  pmix_snprintf(char *str, size_t size, const char *fmt, ...) _
  *
  * THIS IS A PORTABILITY FEATURE: USE vsnprintf() in CODE.
  */
-PMIX_DECLSPEC int  pmix_vsnprintf(char *str, size_t size, const char *fmt, va_list ap) __pmix_attribute_format__(__printf__, 3, 0);
+int  pmix_vsnprintf(char *str, size_t size, const char *fmt, va_list ap) __pmix_attribute_format__(__printf__, 3, 0);
 
 /**
  * Allocates and writes to a string under the control of a format
@@ -99,7 +99,7 @@ PMIX_DECLSPEC int  pmix_vsnprintf(char *str, size_t size, const char *fmt, va_li
  *
  * THIS IS A PORTABILITY FEATURE: USE asprintf() in CODE.
  */
-PMIX_DECLSPEC int  pmix_asprintf(char **ptr, const char *fmt, ...) __pmix_attribute_format__(__printf__, 2, 3);
+int  pmix_asprintf(char **ptr, const char *fmt, ...) __pmix_attribute_format__(__printf__, 2, 3);
 
 
 /**
@@ -123,7 +123,7 @@ PMIX_DECLSPEC int  pmix_asprintf(char **ptr, const char *fmt, ...) __pmix_attrib
  *
  * THIS IS A PORTABILITY FEATURE: USE vasprintf() in CODE.
  */
-PMIX_DECLSPEC int  pmix_vasprintf(char **ptr, const char *fmt, va_list ap) __pmix_attribute_format__(__printf__, 2, 0);
+int  pmix_vasprintf(char **ptr, const char *fmt, va_list ap) __pmix_attribute_format__(__printf__, 2, 0);
 
 
 END_C_DECLS

@@ -11,9 +11,11 @@
  * Copyright (c) 2004-2005 The Regents of the University of California.
  *                         All rights reserved.
  * Copyright (c) 2012      Los Alamos National Security, Inc. All rights reserved.
- * Copyright (c) 2013-2015 Intel, Inc. All rights reserved
+ * Copyright (c) 2013-2016 Intel, Inc. All rights reserved
  * Copyright (c) 2015      Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
+ * Copyright (c) 2016      Mellanox Technologies, Inc.
+ *                         All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -29,37 +31,26 @@
 #ifndef PMIX_BFROP_H_
 #define PMIX_BFROP_H_
 
-#include <private/autogen/config.h>
-#include <pmix/rename.h>
-#include <private/types.h>
+#include <src/include/pmix_config.h>
+
+#include <src/include/types.h>
 
 #include "src/include/pmix_globals.h"
 #include "src/buffer_ops/types.h"
 
 BEGIN_C_DECLS
 
-PMIX_DECLSPEC extern const char pmix_version_string[];
-
-/* internally used object for transferring data
- * to/from the server and for storing in the
- * hash tables */
-typedef struct {
-    pmix_list_item_t super;
-    char *key;
-    pmix_value_t *value;
-} pmix_kval_t;
-PMIX_CLASS_DECLARATION(pmix_kval_t);
-
 /* A non-API function for something that happens in a number
  * of places throughout the code base - transferring a value to
  * another pmix_value_t structure
  */
-PMIX_DECLSPEC pmix_status_t pmix_value_xfer(pmix_value_t *kv, pmix_value_t *src);
-PMIX_DECLSPEC void pmix_value_load(pmix_value_t *v, void *data,
+pmix_status_t pmix_value_xfer(pmix_value_t *kv, pmix_value_t *src);
+void pmix_value_load(pmix_value_t *v, void *data,
                                    pmix_data_type_t type);
-PMIX_DECLSPEC pmix_status_t pmix_value_unload(pmix_value_t *kv, void **data,
-                                              size_t *sz, pmix_data_type_t type);
-PMIX_DECLSPEC bool pmix_value_cmp(pmix_value_t *p, pmix_value_t *p1);
+pmix_status_t pmix_value_unload(pmix_value_t *kv, void **data,
+                                              size_t *sz, pmix_data_type_t type;
+bool pmix_value_cmp(pmix_value_t *p, pmix_value_t *p1);
+
 
 
 #define PMIX_LOAD_BUFFER(b, d, s)                       \
@@ -69,7 +60,9 @@ PMIX_DECLSPEC bool pmix_value_cmp(pmix_value_t *p, pmix_value_t *p1);
         (b)->bytes_allocated = (s);                     \
         (b)->pack_ptr = ((char*)(b)->base_ptr) + (s);   \
         (b)->unpack_ptr = (b)->base_ptr;                \
-    } while(0);
+        (d) = NULL;                                     \
+        (s) = 0;                                        \
+    } while (0)
 
 #define PMIX_UNLOAD_BUFFER(b, d, s)             \
     do {                                        \
@@ -80,7 +73,7 @@ PMIX_DECLSPEC bool pmix_value_cmp(pmix_value_t *p, pmix_value_t *p1);
         (b)->bytes_allocated = 0;               \
         (b)->pack_ptr = NULL;                   \
         (b)->unpack_ptr = NULL;                 \
-    } while (0);
+    } while (0)
 
 
 /**
@@ -255,12 +248,12 @@ typedef pmix_status_t (*pmix_bfrop_copy_payload_fn_t)(pmix_buffer_t *dest,
  * structure gets loaded, so we provide an "open" call that is
  * executed as part of the program startup.
  */
-PMIX_DECLSPEC pmix_status_t pmix_bfrop_open(void);
+pmix_status_t pmix_bfrop_open(void);
 
 /**
  * BFROP finalize function
  */
-PMIX_DECLSPEC pmix_status_t pmix_bfrop_close(void);
+pmix_status_t pmix_bfrop_close(void);
 
 
 /**
@@ -316,7 +309,7 @@ struct pmix_bfrop_t {
 };
 typedef struct pmix_bfrop_t pmix_bfrop_t;
 
-PMIX_DECLSPEC extern pmix_bfrop_t pmix_bfrop;  /* holds bfrop function pointers */
+extern pmix_bfrop_t pmix_bfrop;  /* holds bfrop function pointers */
 
 END_C_DECLS
 

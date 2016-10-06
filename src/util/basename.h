@@ -26,8 +26,8 @@
 #ifndef PMIX_BASENAME_H
 #define PMIX_BASENAME_H
 
-#include <private/autogen/config.h>
-#include <pmix/rename.h>
+#include <src/include/pmix_config.h>
+
 
 BEGIN_C_DECLS
 
@@ -68,7 +68,7 @@ BEGIN_C_DECLS
  *
  * The caller is responsible for freeing the returned string.
  */
-PMIX_DECLSPEC char *pmix_basename(const char* filename) __pmix_attribute_malloc__ __pmix_attribute_warn_unused_result__;
+char *pmix_basename(const char* filename) __pmix_attribute_malloc__ __pmix_attribute_warn_unused_result__;
 
 /**
  * Return the dirname of a filename.
@@ -107,7 +107,7 @@ PMIX_DECLSPEC char *pmix_basename(const char* filename) __pmix_attribute_malloc_
  *
  * The caller is responsible for freeing the returned string.
  */
-PMIX_DECLSPEC char *pmix_dirname(const char* filename) __pmix_attribute_malloc__ __pmix_attribute_warn_unused_result__;
+char *pmix_dirname(const char* filename) __pmix_attribute_malloc__ __pmix_attribute_warn_unused_result__;
 
 END_C_DECLS
 

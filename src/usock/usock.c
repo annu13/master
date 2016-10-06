@@ -4,8 +4,9 @@
  *                         All rights reserved.
  * Copyright (c) 2015      Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
- * Copyright (c) 2015      Mellanox Technologies, Inc.
+ * Copyright (c) 2016      Mellanox Technologies, Inc.
  *                         All rights reserved.
+ * Copyright (c) 2016      IBM Corporation.  All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -13,11 +14,11 @@
  * $HEADER$
  */
 
-#include <private/autogen/config.h>
-#include <pmix/rename.h>
-#include <private/types.h>
-#include <private/pmix_stdint.h>
-#include <private/pmix_socket_errno.h>
+#include <src/include/pmix_config.h>
+
+#include <src/include/types.h>
+#include <src/include/pmix_stdint.h>
+#include <src/include/pmix_socket_errno.h>
 
 #include "src/include/pmix_globals.h"
 
@@ -77,7 +78,7 @@ void pmix_usock_finalize(void)
     PMIX_LIST_DESTRUCT(&pmix_usock_globals.posted_recvs);
 }
 
-int pmix_usock_set_nonblocking(int sd)
+pmix_status_t pmix_usock_set_nonblocking(int sd)
 {
     int flags;
      /* setup the socket as non-blocking */
@@ -95,7 +96,7 @@ int pmix_usock_set_nonblocking(int sd)
     return PMIX_SUCCESS;
 }
 
-int pmix_usock_set_blocking(int sd)
+pmix_status_t  pmix_usock_set_blocking(int sd)
 {
     int flags;
      /* setup the socket as non-blocking */
@@ -262,6 +263,7 @@ PMIX_CLASS_INSTANCE(pmix_usock_posted_recv_t,
 static void cbcon(pmix_cb_t *p)
 {
     p->active = false;
+    p->checked = false;
     PMIX_CONSTRUCT(&p->data, pmix_buffer_t);
     p->cbfunc = NULL;
     p->op_cbfunc = NULL;
@@ -273,13 +275,14 @@ static void cbcon(pmix_cb_t *p)
     p->rank = -1;
     p->key = NULL;
     p->value = NULL;
+    p->procs = NULL;
+    p->info = NULL;
+    p->ninfo = 0;
+    p->nvals = 0;
 }
 static void cbdes(pmix_cb_t *p)
 {
     PMIX_DESTRUCT(&p->data);
-    if (NULL != p->key) {
-        free(p->key);
-    }
 }
 PMIX_CLASS_INSTANCE(pmix_cb_t,
                    pmix_list_item_t,
@@ -300,12 +303,16 @@ PMIX_CLASS_INSTANCE(pmix_usock_sr_t,
 static void pcon(pmix_peer_t *p)
 {
     p->info = NULL;
+    p->proc_cnt = 0;
+    p->server_object = NULL;
+    p->index = 0;
     p->sd = -1;
     p->send_ev_active = false;
     p->recv_ev_active = false;
     PMIX_CONSTRUCT(&p->send_queue, pmix_list_t);
     p->send_msg = NULL;
     p->recv_msg = NULL;
+    memset(&p->compat, 0, sizeof(p->compat));
 }
 static void pdes(pmix_peer_t *p)
 {

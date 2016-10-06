@@ -2,7 +2,7 @@
 #
 # Copyright (c) 2009-2015 Cisco Systems, Inc.  All rights reserved.
 # Copyright (c) 2013      Los Alamos National Security, LLC.  All rights reserved.
-# Copyright (c) 2013-2015 Intel, Inc. All rights reserved
+# Copyright (c) 2013-2016 Intel, Inc. All rights reserved
 # $COPYRIGHT$
 #
 # Additional copyrights may follow
@@ -17,7 +17,11 @@ AC_DEFUN([PMIX_LIBEVENT_CONFIG],[
                 [AC_HELP_STRING([--with-libevent-header=HEADER],
                                 [The value that should be included in C files to include event.h])])
 
-    AS_IF([test "$enable_embedded_mode" = "yes"],
+    AC_ARG_ENABLE([embedded-libevent],
+                  [AC_HELP_STRING([--enable-embedded-libevent],
+                                  [Enable use of locally embedded libevent])])
+
+    AS_IF([test "$enable_embedded_libevent" = "yes"],
           [_PMIX_LIBEVENT_EMBEDDED_MODE],
           [_PMIX_LIBEVENT_EXTERNAL])
 
@@ -120,7 +124,7 @@ AC_DEFUN([_PMIX_LIBEVENT_EXTERNAL],[
     # Set output variables
     PMIX_EVENT_HEADER="<event.h>"
     PMIX_EVENT2_THREAD_HEADER="<event2/thread.h>"
-    PMIX_EVENT_LIB=-levent
+    PMIX_EVENT_LIB="-levent -levent_pthreads"
     AS_IF([test "$pmix_event_dir" != ""],
         [PMIX_EVENT_CPPFLAGS="-I$pmix_event_dir/include"])
     AS_IF([test "$pmix_event_libdir" != ""],

@@ -13,7 +13,7 @@
  *                         All rights reserved.
  * Copyright (c) 2009-2012 Cisco Systems, Inc.  All rights reserved.
  * Copyright (c) 2011      Oak Ridge National Labs.  All rights reserved.
- * Copyright (c) 2013-2015 Intel, Inc.  All rights reserved.
+ * Copyright (c) 2013-2016 Intel, Inc.  All rights reserved.
  * Copyright (c) 2015      Mellanox Technologies, Inc.  All rights reserved.
  * $COPYRIGHT$
  *
@@ -23,7 +23,6 @@
  *
  */
 
-#include <pmix/autogen/config.h>
 #include <stdbool.h>
 
 #define _GNU_SOURCE
@@ -31,6 +30,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <time.h>
+#include <sys/param.h>
 
 #include <pmix.h>
 
@@ -46,15 +46,20 @@ int main(int argc, char **argv)
     uint32_t nprocs;
     char nsp2[PMIX_MAX_NSLEN+1];
     pmix_app_t *app;
-    char hostname[1024];
+    char hostname[MAXHOSTNAMELEN], dir[1024];
     pmix_proc_t *peers;
     size_t npeers, ntmp=0;
     char *nodelist;
 
-    gethostname(hostname, 1024);
+    if (0 > gethostname(hostname, sizeof(hostname))) {
+        exit(1);
+    }
+    if (NULL == getcwd(dir, 1024)) {
+        exit(1);
+    }
 
     /* init us */
-    if (PMIX_SUCCESS != (rc = PMIx_Init(&myproc))) {
+    if (PMIX_SUCCESS != (rc = PMIx_Init(&myproc, NULL, 0))) {
         fprintf(stderr, "Client ns %s rank %d: PMIx_Init failed: %d\n", myproc.nspace, myproc.rank, rc);
         exit(0);
     }
@@ -81,14 +86,16 @@ int main(int argc, char **argv)
     /* rank=0 calls spawn */
     if (0 == myproc.rank) {
         PMIX_APP_CREATE(app, 1);
-        app->cmd = strdup("gumby");
+        if (0 > asprintf(&app->cmd, "%s/client", dir)) {
+            exit(1);
+        }
         app->maxprocs = 2;
-        app->argc = 3;
-        app->argv = (char**)malloc(4 * sizeof(char*));
-        app->argv[0] = strdup("gumby");
-        app->argv[1] = strdup("-n");
-        app->argv[2] = strdup("2");
-        app->argv[3] = NULL;
+        app->argc = 1;
+        app->argv = (char**)malloc(2 * sizeof(char*));
+        if (0 > asprintf(&app->argv[0], "%s/client", dir)) {
+            exit(1);
+        }
+        app->argv[1] = NULL;
         app->env = (char**)malloc(2 * sizeof(char*));
         app->env[0] = strdup("PMIX_ENV_VALUE=3");
         app->env[1] = NULL;
@@ -107,13 +114,6 @@ int main(int argc, char **argv)
         }
         PMIX_APP_FREE(app, 1);
 
-        /* check to see if we got the expected info back */
-        if (0 != strncmp(nsp2, "DYNSPACE", PMIX_MAX_NSLEN)) {
-            fprintf(stderr, "Client ns %s rank %d: PMIx_Spawn returned incorrect nspace: %s\n", myproc.nspace, myproc.rank, nsp2);
-            goto done;
-        } else {
-            fprintf(stderr, "Client ns %s rank %d: PMIx_Spawn succeeded returning nspace: %s\n", myproc.nspace, myproc.rank, nsp2);
-        }
         /* get their universe size */
         val = NULL;
         (void)strncpy(proc.nspace, nsp2, PMIX_MAX_NSLEN);
@@ -190,7 +190,7 @@ int main(int argc, char **argv)
     /* finalize us */
     fprintf(stderr, "Client ns %s rank %d: Finalizing\n", myproc.nspace, myproc.rank);
 
-    if (PMIX_SUCCESS != (rc = PMIx_Finalize())) {
+    if (PMIX_SUCCESS != (rc = PMIx_Finalize(NULL, 0))) {
         fprintf(stderr, "Client ns %s rank %d:PMIx_Finalize failed: %d\n", myproc.nspace, myproc.rank, rc);
     } else {
         fprintf(stderr, "Client ns %s rank %d:PMIx_Finalize successfully completed\n", myproc.nspace, myproc.rank);

@@ -1,10 +1,11 @@
 /* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil -*- */
 /*
- * Copyright (c) 2014-2015 Intel, Inc.  All rights reserved.
+ * Copyright (c) 2014-2016 Intel, Inc.  All rights reserved.
  * Copyright (c) 2014      Research Organization for Information Science
  *                         and Technology (RIST). All rights reserved.
  * Copyright (c) 2014-2015 Artem Y. Polyakov <artpol84@gmail.com>.
  *                         All rights reserved.
+ * Copyright (c) 2016      IBM Corporation.  All rights reserved.
  * $COPYRIGHT$
  *
  * Additional copyrights may follow
@@ -14,11 +15,11 @@
 
 /* THIS FILE IS INCLUDED SOLELY TO INSTANTIATE AND INIT/FINALIZE THE GLOBAL CLASSES */
 
-#include <private/autogen/config.h>
-#include <pmix/rename.h>
-#include <private/types.h>
-#include <private/pmix_stdint.h>
-#include <private/pmix_socket_errno.h>
+#include <src/include/pmix_config.h>
+
+#include <src/include/types.h>
+#include <src/include/pmix_stdint.h>
+#include <src/include/pmix_socket_errno.h>
 
 #include "src/include/pmix_globals.h"
 
@@ -39,24 +40,11 @@
 #include "src/class/pmix_hash_table.h"
 #include "src/class/pmix_list.h"
 
-
-pmix_globals_t pmix_globals = {
-    .init_cntr = 0,
-    .pindex = 0,
-    .evbase = NULL,
-    .debug_output = -1,
-    .server = false,
-    .connected = false,
-    .cache_local = NULL,
-    .cache_remote = NULL
-};
-
-
 void pmix_globals_init(void)
 {
     memset(&pmix_globals.myid, 0, sizeof(pmix_proc_t));
     PMIX_CONSTRUCT(&pmix_globals.nspaces, pmix_list_t);
-    pmix_pointer_array_init(&pmix_globals.errregs, 1, PMIX_MAX_ERROR_REGISTRATIONS, 1);
+    PMIX_CONSTRUCT(&pmix_globals.events, pmix_events_t);
 }
 
 void pmix_globals_finalize(void)
@@ -68,6 +56,7 @@ void pmix_globals_finalize(void)
     if (NULL != pmix_globals.cache_remote) {
         PMIX_RELEASE(pmix_globals.cache_remote);
     }
+    PMIX_DESTRUCT(&pmix_globals.events);
 }
 
 
@@ -156,17 +145,51 @@ PMIX_CLASS_INSTANCE(pmix_rank_info_t,
                     pmix_list_item_t,
                     info_con, info_des);
 
-static void errcon(pmix_error_reg_info_t *p)
+static void scon(pmix_shift_caddy_t *p)
 {
-    p->errhandler = NULL;
+    p->active = false;
+    p->codes = NULL;
+    p->ncodes = 0;
+    p->nspace = NULL;
+    p->data = NULL;
+    p->ndata = 0;
     p->info = NULL;
     p->ninfo = 0;
+    p->directives = NULL;
+    p->ndirs = 0;
+    p->evhdlr = NULL;
+    p->kv = NULL;
+    p->vptr = NULL;
+    p->cd = NULL;
+    p->tracker = NULL;
+    p->enviro = false;
+    p->cbfunc.relfn = NULL;
+    p->cbdata = NULL;
+    p->ref = 0;
 }
-static void errdes(pmix_error_reg_info_t *p)
+static void scdes(pmix_shift_caddy_t *p)
 {
-    p->errhandler = NULL;
-   // PMIX_INFO_FREE(p->info, p->ninfo);
+    if (NULL != p->kv) {
+        PMIX_RELEASE(p->kv);
+    }
 }
-PMIX_CLASS_INSTANCE(pmix_error_reg_info_t,
+PMIX_CLASS_INSTANCE(pmix_shift_caddy_t,
                     pmix_object_t,
-                    errcon, errdes);
+                    scon, scdes);
+
+PMIX_CLASS_INSTANCE(pmix_info_caddy_t,
+                    pmix_list_item_t,
+                    NULL, NULL);
+
+static void qcon(pmix_query_caddy_t *p)
+{
+    p->queries = NULL;
+    p->nqueries = 0;
+    p->cbfunc = NULL;
+    p->cbdata = NULL;
+    p->relcbfunc = NULL;
+}
+PMIX_CLASS_INSTANCE(pmix_query_caddy_t,
+                    pmix_object_t,
+                    qcon, NULL);
+

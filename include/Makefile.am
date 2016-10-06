@@ -1,5 +1,5 @@
 #
-# Copyright 2015      Intel, Inc. All rights reserved
+# Copyright 2015-2016 Intel, Inc. All rights reserved
 #
 # $COPYRIGHT$
 #
@@ -10,33 +10,17 @@
 
 # Only install the headers if we're in standalone mode
 
-EXTRA_DIST += include/private/autogen/README.txt
-
 if ! PMIX_EMBEDDED_MODE
 include_HEADERS = \
-        include/pmix.h \
-        include/pmix_server.h \
-        include/pmi.h \
-        include/pmi2.h
+        pmix.h \
+        pmix_common.h \
+        pmix_server.h \
+        pmi.h \
+        pmi2.h \
+        pmix_tool.h
 
-headers += \
-        include/private/align.h \
-        include/private/hash_string.h \
-        include/private/pmix_socket_errno.h \
-        include/private/pmix_stdint.h \
-        include/private/prefetch.h \
-        include/private/types.h \
-        include/private/autogen/config.h
-include_pmixdir = $(includedir)/pmix
-include_pmix_HEADERS = \
-    include/pmix/rename.h \
-    include/pmix/pmix_common.h
-
-include_pmix_autogendir = $(includedir)/pmix/autogen
-include_pmix_autogen_HEADERS = \
-        include/pmix/autogen/pmix_config_top.h \
-        include/pmix/autogen/pmix_config_bottom.h
-nodist_include_pmix_autogen_HEADERS = \
-        include/pmix/autogen/config.h
+nodist_include_HEADERS = \
+    pmix_version.h \
+    pmix_rename.h
 
 endif ! PMIX_EMBEDDED_MODE

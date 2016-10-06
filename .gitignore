@@ -9,6 +9,9 @@ Makefile.in
 *.deps
 *.dirstamp
 .DS_Store
+*.log
+*.trs
+static-components.h
 
 # http://www.gnu.org/software/autoconf
 
@@ -23,6 +26,7 @@ stamp-h?
 config/install-sh
 config/libtool.m4
 config/ltmain.sh
+config/ylwrap
 config.log
 config.lt
 config.status
@@ -46,16 +50,25 @@ config/ltoptions.m4
 config/ltsugar.m4
 config/ltversion.m4
 config/lt~obsolete.m4
+config/ylwrap
+config/autogen_found_items.m4
 
 examples/client
 examples/dmodex
 examples/dynamic
 examples/fault
 examples/pub
-examples/server
+examples/tool
 
-include/private/autogen/config.h.in
-include/private/autogen/config.h.in~
+include/pmix_version.h
+include/pmix_rename.h
+
+src/include/pmix_config.h
+src/include/pmix_config.h.in
+src/include/pmix_config.h.in~
+src/include/frameworks.h
+
+src/mca/pinstalldirs/config/pinstall_dirs.h
 
 test/pmi2_client
 test/pmi_client
@@ -77,6 +90,8 @@ test/simple/simppub
 test/simple/simpdmodex
 test/simple/simpft
 test/simple/simpdyn
+test/simple/test_pmix
+test/simple/simptool
 
 # coverity
 cov-int
