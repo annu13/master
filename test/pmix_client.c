@@ -200,8 +200,6 @@ int main(int argc, char **argv)
        will fail to get data from others who already exited */
     PMIx_Fence(NULL, 0, NULL, 0);
 
-    TEST_VERBOSE(("Client ns %s rank %d: PASSED", myproc.nspace, myproc.rank));
-    PMIx_Deregister_errhandler(1, op_callbk, NULL);
     /* finalize us */
     TEST_VERBOSE(("Client ns %s rank %d: Finalizing", myproc.nspace, myproc.rank));
     if (PMIX_SUCCESS != (rc = PMIx_Finalize(NULL, 0))) {

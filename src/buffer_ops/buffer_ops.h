@@ -48,7 +48,7 @@ pmix_status_t pmix_value_xfer(pmix_value_t *kv, pmix_value_t *src);
 void pmix_value_load(pmix_value_t *v, void *data,
                                    pmix_data_type_t type);
 pmix_status_t pmix_value_unload(pmix_value_t *kv, void **data,
-                                              size_t *sz, pmix_data_type_t type;
+                                              size_t *sz, pmix_data_type_t type);
 bool pmix_value_cmp(pmix_value_t *p, pmix_value_t *p1);
 
 
