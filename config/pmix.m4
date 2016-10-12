@@ -90,6 +90,7 @@ AC_DEFUN([PMIX_SETUP_CORE],[
     if test "$?" != "0"; then
         AC_MSG_ERROR([Cannot continue])
     fi
+    AC_MSG_RESULT([$PMIX_MAJOR_VERSION])
     AC_SUBST(PMIX_MAJOR_VERSION)
     AC_DEFINE_UNQUOTED([PMIX_MAJOR_VERSION], [$PMIX_MAJOR_VERSION],
                        [The library major version is always available, contrary to VERSION])
@@ -98,6 +99,7 @@ AC_DEFUN([PMIX_SETUP_CORE],[
     if test "$?" != "0"; then
         AC_MSG_ERROR([Cannot continue])
     fi
+    AC_MSG_RESULT([$PMIX_MINOR_VERSION])
     AC_SUBST(PMIX_MINOR_VERSION)
     AC_DEFINE_UNQUOTED([PMIX_MINOR_VERSION], [$PMIX_MINOR_VERSION],
                        [The library minor version is always available, contrary to VERSION])
@@ -112,6 +114,7 @@ AC_DEFUN([PMIX_SETUP_CORE],[
     if test "$?" != "0"; then
         AC_MSG_ERROR([Cannot continue])
     fi
+    AC_MSG_RESULT([$PMIX_RELEASE_VERSION])
     AC_SUBST(PMIX_RELEASE_VERSION)
     AC_DEFINE_UNQUOTED([PMIX_RELEASE_VERSION], [$PMIX_RELEASE_VERSION],
                        [The library release version is always available, contrary to VERSION])
@@ -688,7 +691,9 @@ AC_DEFUN([PMIX_DEFINE_ARGS],[
                          Disabling dlopen implies --disable-pdl-dlopen
                          (default: enabled)])])
     AS_IF([test "$enable_dlopen" = "no"],
-          [PMIX_ENABLE_DLOPEN_SUPPORT=0
+          [enable_mca_dso="no"
+           enable_mca_static="yes"
+           PMIX_ENABLE_DLOPEN_SUPPORT=0
            AC_MSG_RESULT([no])],
           [PMIX_ENABLE_DLOPEN_SUPPORT=1
            AC_MSG_RESULT([yes])])

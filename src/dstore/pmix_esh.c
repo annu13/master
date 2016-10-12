@@ -17,6 +17,7 @@
 #include <fcntl.h>
 #include <sys/file.h>
 #include <dirent.h>
+#include <errno.h>
 
 #include <src/include/pmix_config.h>
 #include <pmix_server.h>
@@ -63,13 +64,47 @@ pmix_dstore_base_module_t pmix_dstore_esh_module = {
 #define EXT_SLOT_SIZE (PMIX_MAX_KEYLEN + 1 + 2*sizeof(size_t)) /* in ext slot new offset will be stored in case if new data were added for the same process during next commit */
 #define KVAL_SIZE(size) (PMIX_MAX_KEYLEN + 1 + sizeof(size_t) + size)
 
-#define _ESH_LOCK(lockfd, operation) \
-do{ \
-    struct flock fl = {0}; \
-    fl.l_type = operation; \
-    fl.l_whence = SEEK_SET; \
-    fcntl(lockfd, F_SETLKW, &fl); \
-}while(0)
+#define _ESH_LOCK(lockfd, operation)                        \
+__extension__ ({                                            \
+    pmix_status_t ret = PMIX_SUCCESS;                       \
+    int i;                                                  \
+    struct flock fl = {0};                                  \
+    fl.l_type = operation;                                  \
+    fl.l_whence = SEEK_SET;                                 \
+    for(i = 0; i < 10; i++) {                               \
+        if( 0 > fcntl(lockfd, F_SETLKW, &fl) ) {            \
+            switch( errno ){                                \
+                case EINTR:                                 \
+                    continue;                               \
+                case ENOENT:                                \
+                case EINVAL:                                \
+                    ret = PMIX_ERR_NOT_FOUND;               \
+                    break;                                  \
+                case EBADF:                                 \
+                    ret = PMIX_ERR_BAD_PARAM;               \
+                    break;                                  \
+                case EDEADLK:                               \
+                case EFAULT:                                \
+                case ENOLCK:                                \
+                    ret = PMIX_ERR_RESOURCE_BUSY;           \
+                    break;                                  \
+                default:                                    \
+                    ret = PMIX_ERROR;                       \
+                    break;                                  \
+            }                                               \
+        }                                                   \
+        break;                                              \
+    }                                                       \
+    if (ret) {                                              \
+        pmix_output(0, "%s %d:%s lock failed: %s",          \
+            __FILE__, __LINE__, __func__, strerror(errno)); \
+    }                                                       \
+    ret;                                                    \
+})
+
+#define _ESH_WRLOCK(lockfd) _ESH_LOCK(lockfd, F_WRLCK)
+#define _ESH_RDLOCK(lockfd) _ESH_LOCK(lockfd, F_RDLCK)
+#define _ESH_UNLOCK(lockfd) _ESH_LOCK(lockfd, F_UNLCK)
 
 #define ESH_INIT_SESSION_TBL_SIZE 2
 #define ESH_INIT_NS_MAP_TBL_SIZE  2
@@ -530,7 +565,7 @@ int _esh_init(pmix_info_t info[], size_t ninfo)
 {
     int rc;
     size_t n;
-    char *tmp;
+    char *dstor_tmpdir = NULL;
     size_t tbl_idx;
     struct stat st = {0};
     ns_map_data_t *ns_map = NULL;
@@ -552,6 +587,11 @@ int _esh_init(pmix_info_t info[], size_t ninfo)
     }
 
     _set_constants_from_env();
+
+    if (NULL != _base_path) {
+        free(_base_path);
+        _base_path = NULL;
+    }
 
     /* find the temp dir */
     if (PMIX_PROC_SERVER == pmix_globals.proc_type) {
@@ -576,33 +616,29 @@ int _esh_init(pmix_info_t info[], size_t ninfo)
                      *
                      * PMIX_DSTPATH has higher priority than PMIX_SERVER_TMPDIR
                      */
-                    if(_base_path != NULL)
-                        free(_base_path);
-                    _base_path = strdup((char*)info[n].value.data.ptr);
+                    dstor_tmpdir = strdup((char*)info[n].value.data.string);
                     continue;
                 }
                 if (0 == strcmp(PMIX_SERVER_TMPDIR, info[n].key)) {
-                    if (NULL ==_base_path) {
-                        _base_path = strdup((char*)info[n].value.data.string);
+                    if (NULL == dstor_tmpdir) {
+                        dstor_tmpdir = (char*)info[n].value.data.string;
                     }
                     continue;
                 }
             }
         }
 
-        if (NULL ==_base_path) {
-            if (NULL == (_base_path = strdup(getenv("TMPDIR")))) {
-                if (NULL == (_base_path = strdup(getenv("TEMP")))) {
-                    if (NULL == (_base_path = strdup(getenv("TMP")))) {
-                        _base_path = strdup("/tmp");
+        if (NULL == dstor_tmpdir) {
+            if (NULL == (dstor_tmpdir = getenv("TMPDIR"))) {
+                if (NULL == (dstor_tmpdir = getenv("TEMP"))) {
+                    if (NULL == (dstor_tmpdir = getenv("TMP"))) {
+                        dstor_tmpdir = "/tmp";
                     }
                 }
             }
         }
 
-        tmp = _base_path;
-        asprintf(&_base_path, "%s/pmix_dstor_%d", tmp, getpid());
-        free(tmp);
+        asprintf(&_base_path, "%s/pmix_dstor_%d", dstor_tmpdir, getpid());
         if (NULL == _base_path) {
             PMIX_ERROR_LOG(PMIX_ERR_OUT_OF_RESOURCE);
             return PMIX_ERR_OUT_OF_RESOURCE;
@@ -625,8 +661,13 @@ int _esh_init(pmix_info_t info[], size_t ninfo)
     }
     /* for clients */
     else {
-        if (NULL == (_base_path = strdup(getenv(PMIX_DSTORE_ESH_BASE_PATH)))){
+        if (NULL == (dstor_tmpdir = getenv(PMIX_DSTORE_ESH_BASE_PATH))){
             rc = PMIX_ERR_BAD_PARAM;
+            PMIX_ERROR_LOG(rc);
+            goto err_exit;
+        }
+        if (NULL == (_base_path = strdup(dstor_tmpdir))) {
+            rc = PMIX_ERR_OUT_OF_RESOURCE;
             PMIX_ERROR_LOG(rc);
             goto err_exit;
         }
@@ -686,7 +727,7 @@ int _esh_finalize(void)
 
 int _esh_store(const char *nspace, pmix_rank_t rank, pmix_kval_t *kv)
 {
-    int rc = PMIX_ERROR;
+    int rc = PMIX_ERROR, lock_rc;
     ns_track_elem_t *elem;
     pmix_buffer_t pbkt, xfer;
     ns_seg_info_t ns_info;
@@ -706,7 +747,9 @@ int _esh_store(const char *nspace, pmix_rank_t rank, pmix_kval_t *kv)
     }
 
     /* set exclusive lock */
-    _ESH_LOCK(_ESH_SESSION_lockfd(ns_map->tbl_idx), _ESH_LOCK_EX);
+    if (PMIX_SUCCESS != (rc = _ESH_WRLOCK(_ESH_SESSION_lockfd(ns_map->tbl_idx)))) {
+        return rc;
+    }
 
     /* First of all, we go through local track list (list of ns_track_elem_t structures)
      * and look for an element for the target namespace.
@@ -765,19 +808,23 @@ int _esh_store(const char *nspace, pmix_rank_t rank, pmix_kval_t *kv)
     PMIX_DESTRUCT(&pbkt);
 
     /* unset lock */
-    _ESH_LOCK(_ESH_SESSION_lockfd(ns_map->tbl_idx), _ESH_LOCK_UN);
+    if (PMIX_SUCCESS != (lock_rc = _ESH_UNLOCK(_ESH_SESSION_lockfd(ns_map->tbl_idx)))) {
+        return lock_rc;
+    }
     return rc;
 
 err_exit:
     /* unset lock */
-    _ESH_LOCK(_ESH_SESSION_lockfd(ns_map->tbl_idx), _ESH_LOCK_UN);
+    if (PMIX_SUCCESS != (lock_rc = _ESH_UNLOCK(_ESH_SESSION_lockfd(ns_map->tbl_idx)))) {
+        return lock_rc;
+    }
     return rc;
 }
 
 int _esh_fetch(const char *nspace, pmix_rank_t rank, const char *key, pmix_value_t **kvs)
 {
     ns_seg_info_t *ns_info = NULL;
-    int rc = PMIX_ERROR;
+    int rc = PMIX_ERROR, lock_rc;
     ns_track_elem_t *elem;
     rank_meta_info *rinfo = NULL;
     size_t kval_cnt;
@@ -817,7 +864,9 @@ int _esh_fetch(const char *nspace, pmix_rank_t rank, const char *key, pmix_value
     }
 
     /* set shared lock */
-    _ESH_LOCK(_ESH_SESSION_lockfd(ns_map->tbl_idx), _ESH_LOCK_SH);
+    if (PMIX_SUCCESS != (lock_rc = _ESH_RDLOCK(_ESH_SESSION_lockfd(ns_map->tbl_idx)))) {
+        return lock_rc;
+    }
 
     /* First of all, we go through all initial segments and look at their field.
      * If it's 1, then generate name of next initial segment incrementing id by one and attach to it.
@@ -952,7 +1001,7 @@ int _esh_fetch(const char *nspace, pmix_rank_t rank, const char *key, pmix_value
                 goto done;
             } else {
                 char ckey[PMIX_MAX_KEYLEN+1] = {0};
-                strncpy(ckey, (const char *)addr, PMIX_MAX_KEYLEN+1);
+                strncpy(ckey, (const char *)addr, PMIX_MAX_KEYLEN);
                 size_t size;
                 memcpy(&size, addr + PMIX_MAX_KEYLEN + 1, sizeof(size_t));
                 PMIX_OUTPUT_VERBOSE((10, pmix_globals.debug_output,
@@ -966,7 +1015,9 @@ int _esh_fetch(const char *nspace, pmix_rank_t rank, const char *key, pmix_value
 
 done:
     /* unset lock */
-    _ESH_LOCK(_ESH_SESSION_lockfd(ns_map->tbl_idx), _ESH_LOCK_UN);
+    if (PMIX_SUCCESS != (lock_rc = _ESH_UNLOCK(_ESH_SESSION_lockfd(ns_map->tbl_idx)))) {
+        return lock_rc;
+    }
     return rc;
 }
 
